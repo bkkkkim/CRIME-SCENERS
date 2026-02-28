@@ -11,6 +11,18 @@ export interface Theme {
   fearLevel: number; // Added fear level
   price: number;
   customSlots?: string[];
+  storeId?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface Store {
+  id: string;
+  name: string;
+  phone: string;
+  weekdayHours: string;
+  weekendHours: string;
+  address: string;
 }
 
 export interface Notice {
@@ -31,9 +43,16 @@ export interface AdminSettings {
     accountNumber: string;
     holderName: string;
   };
+  businessInfo: {
+    registrationNumber: string;
+    representativeName: string;
+    instagramUrl: string;
+    naverUrl: string;
+  };
   logoUrl: string;
   faviconUrl: string;
   thumbnailUrl: string;
+  findUsImageUrl: string;
   smsTemplates: {
     onBooking: { content: string; enabled: boolean };
     dayBefore: { content: string; time: string; enabled: boolean };

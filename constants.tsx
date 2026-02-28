@@ -1,5 +1,5 @@
 
-import { Theme, AdminSettings, Notice } from './types';
+import { Theme, AdminSettings, Notice, Store } from './types';
 
 export const THEMES: Theme[] = [
   {
@@ -12,7 +12,8 @@ export const THEMES: Theme[] = [
     duration: 100,
     difficulty: 4,
     fearLevel: 3,
-    price: 28000
+    price: 28000,
+    storeId: 'store-1'
   },
   {
     id: 'theme-2',
@@ -24,24 +25,36 @@ export const THEMES: Theme[] = [
     duration: 120,
     difficulty: 5,
     fearLevel: 2,
-    price: 32000
+    price: 32000,
+    storeId: 'store-1'
+  }
+];
+
+export const STORES: Store[] = [
+  {
+    id: 'store-1',
+    name: '강남점',
+    phone: '02-123-4567',
+    weekdayHours: '17:00~24:00',
+    weekendHours: '10:00~24:00',
+    address: '서울특별시 강남구 테헤란로 123, B1'
   }
 ];
 
 export const INTRO_POINTS = [
   {
-    title: '압도적 몰입감',
-    desc: '전문 시나리오 작가와 공간 디자이너가 완성한 고퀄리티 현장 분위기를 경험하세요.',
+    title: '완성도 높은 스토리',
+    desc: '씨네마광 공대박사의 탄탄한 시나리오',
     img: 'https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&q=80'
   },
   {
-    title: '탄탄한 시나리오',
-    desc: '치밀하게 얽힌 인물 관계와 반전의 드라마. 당신의 추리력이 진실을 밝힐 열쇠입니다.',
+    title: '몰입도 높은 현장',
+    desc: '미대생 출신이 직접 연출한 크라임씬',
     img: 'https://images.unsplash.com/photo-1517400508447-f8dd518b86db?auto=format&fit=crop&q=80'
   },
   {
-    title: '다양한 캐릭터',
-    desc: '각기 다른 사연과 비밀을 가진 캐릭터들. 역할에 완벽히 몰입하여 범인을 찾거나 속이세요.',
+    title: '다양한 롤플레잉',
+    desc: '각기 다른 사연과 비밀을 가진 캐릭터들',
     img: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80'
   }
 ];
@@ -56,9 +69,16 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
     accountNumber: '110520466113',
     holderName: '김보경'
   },
+  businessInfo: {
+    registrationNumber: '123-45-67890',
+    representativeName: '김범인',
+    instagramUrl: '#',
+    naverUrl: '#'
+  },
   logoUrl: 'https://i.imgur.com/G5ZkX1n.png',
   faviconUrl: '',
   thumbnailUrl: '',
+  findUsImageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80',
   smsTemplates: {
     onBooking: {
       content: '[CRIME SCENERS] {name}님, {theme} 테마 예약이 완료되었습니다. {date} {time}에 뵙겠습니다.',
@@ -91,6 +111,7 @@ export const INITIAL_NOTICES: Notice[] = [
 ];
 
 export const STORE_INFO = {
+  name: '강남점',
   address: '서울특별시 강남구 테헤란로 123, B1',
   phone: '02-123-4567',
   hours: '평일 17:00-24:00 / 주말 10:00-24:00',

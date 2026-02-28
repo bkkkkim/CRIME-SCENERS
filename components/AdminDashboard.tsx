@@ -1,40 +1,79 @@
 
 import React, { useState, useEffect } from 'react';
-import { DEFAULT_ADMIN_SETTINGS, INITIAL_NOTICES, THEMES } from '../constants';
-import { AdminSettings, Notice, Theme, BookingData, ClosedSlot } from '../types';
+import { DEFAULT_ADMIN_SETTINGS, INITIAL_NOTICES, THEMES, STORES } from '../constants';
+import { AdminSettings, Notice, Theme, BookingData, ClosedSlot, Store } from '../types';
 import { 
   Save, Plus, Trash2, LayoutDashboard, Calendar, FileText, Settings, 
   User, Phone, Users, Clock, MessageSquare, XCircle, Home as HomeIcon, 
-  CalendarX, CheckCircle, AlertCircle, Upload, CreditCard, Copy, Check
+  CalendarX, CheckCircle, AlertCircle, Upload, CreditCard, Copy, Check,
+  Store as StoreIcon, Globe, MapPin, Send
 } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState<'bookings' | 'themes' | 'site'>('bookings');
+  const [activeTab, setActiveTab] = useState<'bookings' | 'themes' | 'stores' | 'site'>('bookings');
   const [settings, setSettings] = useState<AdminSettings>(DEFAULT_ADMIN_SETTINGS);
   const [themes, setThemes] = useState<Theme[]>(THEMES);
+  const [stores, setStores] = useState<Store[]>(STORES);
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [closedSlots, setClosedSlots] = useState<ClosedSlot[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
     const s = localStorage.getItem('cs_admin_settings');
     const t = localStorage.getItem('cs_themes');
     const b = localStorage.getItem('cs_bookings');
     const c = localStorage.getItem('cs_closed_slots');
+    const st = localStorage.getItem('cs_stores');
     
-    if (s) setSettings(JSON.parse(s));
+    if (s) {
+      const saved = JSON.parse(s);
+      setSettings({ 
+        ...DEFAULT_ADMIN_SETTINGS, 
+        ...saved, 
+        homeConfig: { ...DEFAULT_ADMIN_SETTINGS.homeConfig, ...saved.homeConfig },
+        businessInfo: { ...DEFAULT_ADMIN_SETTINGS.businessInfo, ...saved.businessInfo },
+        bankInfo: { ...DEFAULT_ADMIN_SETTINGS.bankInfo, ...saved.bankInfo },
+        smsTemplates: { ...DEFAULT_ADMIN_SETTINGS.smsTemplates, ...saved.smsTemplates }
+      });
+    }
     if (t) setThemes(JSON.parse(t));
     if (b) setBookings(JSON.parse(b));
     if (c) setClosedSlots(JSON.parse(c));
+    if (st) setStores(JSON.parse(st));
   }, []);
 
-  const saveAll = (type: string, data: any) => {
-    localStorage.setItem(type, JSON.stringify(data));
+  // Track changes
+  useEffect(() => {
+    const initialSettings = localStorage.getItem('cs_admin_settings');
+    const initialThemes = localStorage.getItem('cs_themes');
+    const initialStores = localStorage.getItem('cs_stores');
+    const initialClosed = localStorage.getItem('cs_closed_slots');
+
+    const hasSettingsChanged = JSON.stringify(settings) !== (initialSettings || JSON.stringify(DEFAULT_ADMIN_SETTINGS));
+    const hasThemesChanged = JSON.stringify(themes) !== (initialThemes || JSON.stringify(THEMES));
+    const hasStoresChanged = JSON.stringify(stores) !== (initialStores || JSON.stringify(STORES));
+    const hasClosedChanged = JSON.stringify(closedSlots) !== (initialClosed || '[]');
+
+    setIsDirty(hasSettingsChanged || hasThemesChanged || hasStoresChanged || hasClosedChanged);
+  }, [settings, themes, stores, closedSlots]);
+
+  const saveAll = (key: string, data: any) => {
+    localStorage.setItem(key, JSON.stringify(data));
+  };
+
+  const handlePublish = () => {
+    saveAll('cs_admin_settings', settings);
+    saveAll('cs_themes', themes);
+    saveAll('cs_bookings', bookings);
+    saveAll('cs_closed_slots', closedSlots);
+    saveAll('cs_stores', stores);
+    setIsDirty(false);
+    alert('모든 변경사항이 홈페이지에 적용되었습니다.');
   };
 
   const handleUpdateBookingStatus = (bookingId: string, status: BookingData['status']) => {
     const updated = bookings.map(b => b.id === bookingId ? { ...b, status } : b);
     setBookings(updated);
-    saveAll('cs_bookings', updated);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
@@ -57,7 +96,6 @@ const AdminDashboard = () => {
       updated = [...closedSlots, { date, themeId, time }];
     }
     setClosedSlots(updated);
-    saveAll('cs_closed_slots', updated);
   };
 
   const NavButton = ({ id, icon: Icon, label }: { id: typeof activeTab, icon: any, label: string }) => (
@@ -80,7 +118,26 @@ const AdminDashboard = () => {
           <h1 className="text-xl font-bold mb-8 px-4">CONTROL CENTER</h1>
           <NavButton id="bookings" icon={Calendar} label="예약 현황" />
           <NavButton id="themes" icon={LayoutDashboard} label="테마상품 설정" />
+          <NavButton id="stores" icon={StoreIcon} label="매장 등록/관리" />
           <NavButton id="site" icon={Settings} label="사이트 설정" />
+          
+          <div className="pt-8 px-4">
+            <button 
+              onClick={handlePublish}
+              disabled={!isDirty}
+              className={`w-full py-3 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all ${
+                isDirty 
+                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20' 
+                : 'bg-white/5 text-white/20 cursor-not-allowed'
+              }`}
+            >
+              <Send size={16} />
+              <span>홈페이지 적용하기</span>
+            </button>
+            <p className="text-[10px] text-white/20 mt-2 text-center">
+              {isDirty ? '수정된 내용이 있습니다. 적용해주세요.' : '현재 모든 내용이 적용된 상태입니다.'}
+            </p>
+          </div>
         </div>
 
         {/* Content Area */}
@@ -159,8 +216,10 @@ const AdminDashboard = () => {
                         <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-8 gap-3">
                           {[0, 1, 2, 3, 4, 5, 6].map(dayOffset => {
                             const date = new Date();
+                            // Fix: Ensure we start from today correctly in local time
+                            date.setHours(0, 0, 0, 0);
                             date.setDate(date.getDate() + dayOffset);
-                            const dateStr = date.toISOString().split('T')[0];
+                            const dateStr = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
                             const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                             const slots = t.customSlots && t.customSlots.length > 0 ? t.customSlots : (isWeekend ? settings.weekendSlots : settings.weekdaySlots);
                             
@@ -209,11 +268,11 @@ const AdminDashboard = () => {
                       duration: 60, 
                       difficulty: 3, 
                       fearLevel: 0, 
-                      price: 20000 
+                      price: 20000,
+                      startDate: '',
+                      endDate: ''
                     };
-                    const updated = [...themes, newTheme];
-                    setThemes(updated);
-                    saveAll('cs_themes', updated);
+                    setThemes(prev => [...prev, newTheme]);
                   }}
                   className="px-4 py-2 bg-white text-black font-bold rounded-lg text-sm flex items-center gap-2"
                 >
@@ -234,10 +293,11 @@ const AdminDashboard = () => {
                           <Upload size={24} className="mb-2" />
                           <span className="text-[10px]">이미지 업로드</span>
                           <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (base64) => {
-                            const updated = [...themes];
-                            updated[idx].posterUrl = base64;
-                            setThemes(updated);
-                            saveAll('cs_themes', updated);
+                            setThemes(prev => {
+                              const updated = [...prev];
+                              updated[idx] = { ...updated[idx], posterUrl: base64 };
+                              return updated;
+                            });
                           })} />
                         </label>
                       </div>
@@ -248,20 +308,40 @@ const AdminDashboard = () => {
                           <label className="text-xs text-white/40 mb-1 block">테마 명</label>
                           <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
                             value={theme.title} onChange={e => {
-                              const updated = [...themes];
-                              updated[idx].title = e.target.value;
-                              setThemes(updated);
-                              saveAll('cs_themes', updated);
+                              setThemes(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], title: e.target.value };
+                                return updated;
+                              });
                             }} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-white/40 mb-1 block">소속 매장</label>
+                          <select className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white text-sm"
+                            value={theme.storeId || ''}
+                            onChange={e => {
+                              setThemes(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], storeId: e.target.value };
+                                return updated;
+                              });
+                            }}
+                          >
+                            <option value="">매장 선택 없음</option>
+                            {stores.map(s => (
+                              <option key={s.id} value={s.id}>{s.name}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="text-xs text-white/40 mb-1 block">가격 (1인당)</label>
                           <input type="number" className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
                             value={theme.price} onChange={e => {
-                              const updated = [...themes];
-                              updated[idx].price = parseInt(e.target.value);
-                              setThemes(updated);
-                              saveAll('cs_themes', updated);
+                              setThemes(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], price: parseInt(e.target.value) || 0 };
+                                return updated;
+                              });
                             }} />
                         </div>
                       </div>
@@ -270,70 +350,99 @@ const AdminDashboard = () => {
                           <label className="text-xs text-white/40 mb-1 block">최소 인원</label>
                           <input type="number" className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
                             value={theme.minPlayers} onChange={e => {
-                              const updated = [...themes];
-                              updated[idx].minPlayers = parseInt(e.target.value);
-                              setThemes(updated);
-                              saveAll('cs_themes', updated);
+                              setThemes(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], minPlayers: parseInt(e.target.value) || 0 };
+                                return updated;
+                              });
                             }} />
                         </div>
                         <div>
                           <label className="text-xs text-white/40 mb-1 block">최대 인원</label>
                           <input type="number" className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
                             value={theme.maxPlayers} onChange={e => {
-                              const updated = [...themes];
-                              updated[idx].maxPlayers = parseInt(e.target.value);
-                              setThemes(updated);
-                              saveAll('cs_themes', updated);
+                              setThemes(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], maxPlayers: parseInt(e.target.value) || 0 };
+                                return updated;
+                              });
                             }} />
                         </div>
                         <div>
                           <label className="text-xs text-white/40 mb-1 block">난이도 (1-5)</label>
                           <input type="number" min="1" max="5" className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
                             value={theme.difficulty} onChange={e => {
-                              const updated = [...themes];
-                              updated[idx].difficulty = parseInt(e.target.value);
-                              setThemes(updated);
-                              saveAll('cs_themes', updated);
+                              setThemes(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], difficulty: parseInt(e.target.value) || 0 };
+                                return updated;
+                              });
                             }} />
                         </div>
                         <div>
                           <label className="text-xs text-white/40 mb-1 block">공포도 (0-5)</label>
                           <input type="number" min="0" max="5" className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
                             value={theme.fearLevel} onChange={e => {
-                              const updated = [...themes];
-                              updated[idx].fearLevel = parseInt(e.target.value);
-                              setThemes(updated);
-                              saveAll('cs_themes', updated);
+                              setThemes(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], fearLevel: parseInt(e.target.value) || 0 };
+                                return updated;
+                              });
+                            }} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs text-white/40 mb-1 block">노출 시작일 (Coming Soon 해제)</label>
+                          <input type="date" className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white text-sm" 
+                            value={theme.startDate || ''} onChange={e => {
+                              setThemes(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], startDate: e.target.value };
+                                return updated;
+                              });
+                            }} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-white/40 mb-1 block">노출 종료일 (이후 Coming Soon)</label>
+                          <input type="date" className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white text-sm" 
+                            value={theme.endDate || ''} onChange={e => {
+                              setThemes(prev => {
+                                const updated = [...prev];
+                                updated[idx] = { ...updated[idx], endDate: e.target.value };
+                                return updated;
+                              });
                             }} />
                         </div>
                       </div>
                       <div>
                         <label className="text-xs text-white/40 mb-1 block">개별 운영 슬롯 (쉼표 구분 - 미입력시 기본설정 적용)</label>
+                        <div className="text-[10px] text-white/20 mb-2">현재 기본 슬롯: {settings.weekdaySlots.join(', ')} (평일) / {settings.weekendSlots.join(', ')} (주말)</div>
                         <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white font-mono text-sm" 
                           placeholder="12:00, 14:00, 16:00..."
                           value={theme.customSlots?.join(', ') || ''} 
                           onChange={e => {
-                            const updated = [...themes];
-                            updated[idx].customSlots = e.target.value.split(',').map(s => s.trim()).filter(s => s);
-                            setThemes(updated);
-                            saveAll('cs_themes', updated);
+                            setThemes(prev => {
+                              const updated = [...prev];
+                              updated[idx] = { ...updated[idx], customSlots: e.target.value.split(',').map(s => s.trim()).filter(s => s) };
+                              return updated;
+                            });
                           }} />
                       </div>
                       <div>
                         <label className="text-xs text-white/40 mb-1 block">소개글 (시놉시스)</label>
                         <textarea rows={3} className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white resize-none text-sm" 
                           value={theme.synopsis} onChange={e => {
-                            const updated = [...themes];
-                            updated[idx].synopsis = e.target.value;
-                            setThemes(updated);
-                            saveAll('cs_themes', updated);
+                            setThemes(prev => {
+                              const updated = [...prev];
+                              updated[idx] = { ...updated[idx], synopsis: e.target.value };
+                              return updated;
+                            });
                           }} />
                       </div>
                       <button onClick={() => {
                         if (window.confirm('정말 이 테마를 삭제하시겠습니까?')) {
-                          const updated = themes.filter(t => t.id !== theme.id);
-                          setThemes(updated);
-                          saveAll('cs_themes', updated);
+                          setThemes(prev => prev.filter(t => t.id !== theme.id));
                         }
                       }} className="text-[#dc2626] text-xs font-bold flex items-center gap-1 hover:underline">
                         <Trash2 size={14} /> 이 테마 삭제
@@ -345,7 +454,92 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* 3. 사이트 설정 */}
+          {/* 3. 매장 관리 */}
+          {activeTab === 'stores' && (
+            <div className="space-y-8">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">매장 등록 및 관리</h2>
+                <button 
+                  onClick={() => {
+                    const newStore: Store = { 
+                      id: `store-${Date.now()}`, 
+                      name: '새 매장', 
+                      phone: '', 
+                      weekdayHours: '10:00~22:00', 
+                      weekendHours: '10:00~23:00', 
+                      address: '' 
+                    };
+                    setStores([...stores, newStore]);
+                  }}
+                  className="px-4 py-2 bg-white text-black font-bold rounded-lg text-sm flex items-center gap-2"
+                >
+                  <Plus size={18} /> 새 매장 추가
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-6">
+                {stores.map((store, idx) => (
+                  <div key={store.id} className="bg-[#1a1a1a] p-8 rounded-3xl border border-white/5 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="text-xs text-white/40 mb-1 block">매장 명</label>
+                        <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
+                          value={store.name} onChange={e => {
+                            const updated = [...stores];
+                            updated[idx].name = e.target.value;
+                            setStores(updated);
+                          }} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/40 mb-1 block">매장 연락처</label>
+                        <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
+                          value={store.phone} onChange={e => {
+                            const updated = [...stores];
+                            updated[idx].phone = e.target.value;
+                            setStores(updated);
+                          }} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/40 mb-1 block">평일 운영시간</label>
+                        <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
+                          value={store.weekdayHours} onChange={e => {
+                            const updated = [...stores];
+                            updated[idx].weekdayHours = e.target.value;
+                            setStores(updated);
+                          }} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/40 mb-1 block">주말 운영시간</label>
+                        <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
+                          value={store.weekendHours} onChange={e => {
+                            const updated = [...stores];
+                            updated[idx].weekendHours = e.target.value;
+                            setStores(updated);
+                          }} />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-xs text-white/40 mb-1 block">매장 주소</label>
+                        <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none focus:border-white" 
+                          value={store.address} onChange={e => {
+                            const updated = [...stores];
+                            updated[idx].address = e.target.value;
+                            setStores(updated);
+                          }} />
+                      </div>
+                    </div>
+                    <button onClick={() => {
+                      if (window.confirm('매장을 삭제하시겠습니까?')) {
+                        setStores(stores.filter(s => s.id !== store.id));
+                      }
+                    }} className="text-[#dc2626] text-xs font-bold flex items-center gap-1 hover:underline">
+                      <Trash2 size={14} /> 이 매장 삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 4. 사이트 설정 */}
           {activeTab === 'site' && (
             <div className="space-y-12">
               <div className="space-y-8">
@@ -353,7 +547,7 @@ const AdminDashboard = () => {
                 
                 <div className="bg-[#1a1a1a] p-8 rounded-3xl border border-white/5 space-y-8">
                   <h3 className="text-lg font-bold border-b border-white/5 pb-4">브랜드 이미지 (파일 업로드)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     <div className="space-y-4">
                       <label className="text-sm font-bold block">로고 (Logo)</label>
                       <div className="h-20 bg-black rounded-xl border border-white/10 flex items-center justify-center relative group overflow-hidden">
@@ -361,9 +555,7 @@ const AdminDashboard = () => {
                         <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                           <Upload size={20} />
                           <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (base64) => {
-                            const updated = { ...settings, logoUrl: base64 };
-                            setSettings(updated);
-                            saveAll('cs_admin_settings', updated);
+                            setSettings(prev => ({ ...prev, logoUrl: base64 }));
                           })} />
                         </label>
                       </div>
@@ -375,9 +567,7 @@ const AdminDashboard = () => {
                         <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                           <Upload size={20} />
                           <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (base64) => {
-                            const updated = { ...settings, faviconUrl: base64 };
-                            setSettings(updated);
-                            saveAll('cs_admin_settings', updated);
+                            setSettings(prev => ({ ...prev, faviconUrl: base64 }));
                           })} />
                         </label>
                       </div>
@@ -389,9 +579,19 @@ const AdminDashboard = () => {
                         <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                           <Upload size={20} />
                           <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (base64) => {
-                            const updated = { ...settings, thumbnailUrl: base64 };
-                            setSettings(updated);
-                            saveAll('cs_admin_settings', updated);
+                            setSettings(prev => ({ ...prev, thumbnailUrl: base64 }));
+                          })} />
+                        </label>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-sm font-bold block">Find Us 이미지</label>
+                      <div className="h-20 bg-black rounded-xl border border-white/10 flex items-center justify-center relative group overflow-hidden">
+                        {settings.findUsImageUrl ? <img src={settings.findUsImageUrl} className="w-full h-full object-cover" /> : <span className="text-white/20 text-xs">이미지 없음</span>}
+                        <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                          <Upload size={20} />
+                          <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (base64) => {
+                            setSettings(prev => ({ ...prev, findUsImageUrl: base64 }));
                           })} />
                         </label>
                       </div>
@@ -400,29 +600,37 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="bg-[#1a1a1a] p-8 rounded-3xl border border-white/5 space-y-8">
-                  <h3 className="text-lg font-bold border-b border-white/5 pb-4">메인 화면 이미지</h3>
+                  <h3 className="text-lg font-bold border-b border-white/5 pb-4">메인 화면 이미지 (파일 업로드)</h3>
                   <div>
-                    <label className="text-sm font-bold mb-4 block">메인 히어로 배경 이미지 URL</label>
-                    <div className="flex gap-4">
-                      <input className="flex-grow bg-black border border-white/10 p-3 rounded-lg outline-none" 
-                        value={settings.homeConfig.heroImageUrl} 
-                        onChange={e => setSettings({...settings, homeConfig: {...settings.homeConfig, heroImageUrl: e.target.value}})} />
+                    <label className="text-sm font-bold mb-4 block">메인 히어로 배경 이미지</label>
+                    <div className="h-48 bg-black rounded-xl border border-white/10 flex items-center justify-center relative group overflow-hidden">
+                      {settings.homeConfig.heroImageUrl ? <img src={settings.homeConfig.heroImageUrl} className="w-full h-full object-cover" /> : <span className="text-white/20 text-xs">이미지 없음</span>}
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer">
+                        <Upload size={32} className="mb-2" />
+                        <span>히어로 이미지 업로드</span>
+                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (base64) => {
+                          setSettings(prev => ({ ...prev, homeConfig: { ...prev.homeConfig, heroImageUrl: base64 } }));
+                        })} />
+                      </label>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {settings.homeConfig.introImages.map((url, i) => (
                       <div key={i} className="space-y-2">
-                        <label className="text-xs text-white/40">인트로 포인트 {i+1} 이미지 URL</label>
-                        <div className="aspect-[4/3] rounded-lg overflow-hidden mb-2 border border-white/10">
-                          <img src={url} className="w-full h-full object-cover" />
+                        <label className="text-xs text-white/40">인트로 포인트 {i+1} 이미지</label>
+                        <div className="aspect-[4/3] rounded-lg overflow-hidden border border-white/10 relative group">
+                          {url ? <img src={url} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-black flex items-center justify-center text-white/20 text-xs">이미지 없음</div>}
+                          <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                            <Upload size={20} />
+                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, (base64) => {
+                              setSettings(prev => {
+                                const updatedImages = [...prev.homeConfig.introImages];
+                                updatedImages[i] = base64;
+                                return { ...prev, homeConfig: { ...prev.homeConfig, introImages: updatedImages } };
+                              });
+                            })} />
+                          </label>
                         </div>
-                        <input className="w-full bg-black text-xs border border-white/10 p-2 rounded outline-none" 
-                          value={url} 
-                          onChange={e => {
-                            const updatedImages = [...settings.homeConfig.introImages];
-                            updatedImages[i] = e.target.value;
-                            setSettings({...settings, homeConfig: {...settings.homeConfig, introImages: updatedImages}});
-                          }} />
                       </div>
                     ))}
                   </div>
@@ -436,17 +644,43 @@ const AdminDashboard = () => {
                     <div>
                       <label className="text-xs text-white/40 mb-1 block">은행명</label>
                       <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none" 
-                        value={settings.bankInfo.bankName} onChange={e => setSettings({...settings, bankInfo: {...settings.bankInfo, bankName: e.target.value}})} />
+                        value={settings.bankInfo.bankName} onChange={e => setSettings(prev => ({...prev, bankInfo: {...prev.bankInfo, bankName: e.target.value}}))} />
                     </div>
                     <div>
                       <label className="text-xs text-white/40 mb-1 block">계좌번호</label>
                       <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none" 
-                        value={settings.bankInfo.accountNumber} onChange={e => setSettings({...settings, bankInfo: {...settings.bankInfo, accountNumber: e.target.value}})} />
+                        value={settings.bankInfo.accountNumber} onChange={e => setSettings(prev => ({...prev, bankInfo: {...prev.bankInfo, accountNumber: e.target.value}}))} />
                     </div>
                     <div>
                       <label className="text-xs text-white/40 mb-1 block">예금주</label>
                       <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none" 
-                        value={settings.bankInfo.holderName} onChange={e => setSettings({...settings, bankInfo: {...settings.bankInfo, holderName: e.target.value}})} />
+                        value={settings.bankInfo.holderName} onChange={e => setSettings(prev => ({...prev, bankInfo: {...prev.bankInfo, holderName: e.target.value}}))} />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="bg-[#1a1a1a] p-8 rounded-3xl border border-white/5 space-y-6">
+                  <h2 className="text-xl font-bold border-l-4 border-white pl-3 flex items-center gap-2"><Globe size={20}/> 기본 정보 및 SNS 설정</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">사업자 등록번호</label>
+                      <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none" 
+                        value={settings.businessInfo.registrationNumber} onChange={e => setSettings({...settings, businessInfo: {...settings.businessInfo, registrationNumber: e.target.value}})} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">대표자명</label>
+                      <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none" 
+                        value={settings.businessInfo.representativeName} onChange={e => setSettings({...settings, businessInfo: {...settings.businessInfo, representativeName: e.target.value}})} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">INSTAGRAM 링크</label>
+                      <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none" 
+                        value={settings.businessInfo.instagramUrl} onChange={e => setSettings({...settings, businessInfo: {...settings.businessInfo, instagramUrl: e.target.value}})} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-white/40 mb-1 block">NAVER 링크</label>
+                      <input className="w-full bg-black border border-white/10 p-3 rounded-lg outline-none" 
+                        value={settings.businessInfo.naverUrl} onChange={e => setSettings({...settings, businessInfo: {...settings.businessInfo, naverUrl: e.target.value}})} />
                     </div>
                   </div>
                 </section>
@@ -507,12 +741,6 @@ const AdminDashboard = () => {
                         value={settings.weekendSlots.join(', ')} onChange={e => setSettings({...settings, weekendSlots: e.target.value.split(',').map(s => s.trim())})} />
                     </div>
                   </div>
-                  <button onClick={() => {
-                    saveAll('cs_admin_settings', settings);
-                    alert('모든 설정이 저장되었습니다.');
-                  }} className="w-full py-4 bg-white text-black font-bold rounded-xl flex items-center justify-center gap-2">
-                    <Save size={20} /> 사이트 최종 설정 저장
-                  </button>
                 </section>
               </div>
             </div>

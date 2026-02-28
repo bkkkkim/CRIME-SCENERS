@@ -1,58 +1,123 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { THEMES } from '../constants';
-import { ChevronRight } from 'lucide-react';
-import { Theme } from '../types';
+import { THEMES, STORES } from '../constants';
+import { ChevronRight, Users, Clock, MapPin } from 'lucide-react';
+import { Theme, Store } from '../types';
 
 const ThemeReservation = () => {
   const [themes, setThemes] = useState<Theme[]>(THEMES);
+  const [stores, setStores] = useState<Store[]>(STORES);
 
   useEffect(() => {
-    const saved = localStorage.getItem('cs_themes');
-    if (saved) setThemes(JSON.parse(saved));
+    const savedThemes = localStorage.getItem('cs_themes');
+    const savedStores = localStorage.getItem('cs_stores');
+    if (savedThemes) setThemes(JSON.parse(savedThemes));
+    if (savedStores) setStores(JSON.parse(savedStores));
   }, []);
 
   return (
     <div className="pt-32 pb-24 px-6 max-w-7xl mx-auto">
-      <div className="mb-16">
-        <h1 className="text-4xl font-bold mb-4">테마 예약</h1>
-        <p className="text-[#b3b3b3]">원하시는 테마를 선택하여 예약해 주세요.</p>
+      <div className="mb-16 text-center md:text-left">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tighter">THEME EPISODES</h1>
+        <p className="text-[#b3b3b3] text-lg">원하시는 에피소드를 선택하여 사건 현장으로 입장하세요.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {themes.map((theme) => (
-          <div key={theme.id} className="bg-[#1a1a1a] rounded-2xl overflow-hidden flex flex-col group border border-white/5 hover:border-white/20 transition-all">
-            <div className="relative aspect-[3/4] overflow-hidden">
-              <img 
-                src={theme.posterUrl} 
-                alt={theme.title} 
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded text-xs font-bold text-white">
-                난이도: {'★'.repeat(theme.difficulty)}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+        {themes.map((theme) => {
+          const store = stores.find(s => s.id === theme.storeId);
+          const now = new Date();
+          const startDate = theme.startDate ? new Date(theme.startDate) : null;
+          const endDate = theme.endDate ? new Date(theme.endDate) : null;
+          
+          now.setHours(0, 0, 0, 0);
+          if (startDate) startDate.setHours(0, 0, 0, 0);
+          if (endDate) endDate.setHours(0, 0, 0, 0);
+
+          const isComingSoon = (startDate && now < startDate) || (endDate && now > endDate);
+
+          return (
+            <div key={theme.id} className={`group flex flex-col ${isComingSoon ? 'opacity-60' : ''}`}>
+              <Link 
+                to={isComingSoon ? '#' : `/theme/${theme.id}`} 
+                className={`relative aspect-[3/4] overflow-hidden rounded-2xl mb-6 shadow-xl block ${isComingSoon ? 'cursor-default' : ''}`}
+                onClick={(e) => isComingSoon && e.preventDefault()}
+              >
+                <img 
+                  src={theme.posterUrl} 
+                  alt={theme.title} 
+                  className={`w-full h-full object-cover transition-transform duration-700 ${isComingSoon ? 'grayscale opacity-50' : 'group-hover:scale-110'}`}
+                />
+                {isComingSoon && (
+                  <div className="absolute inset-0 flex items-center justify-center z-20">
+                    <div className="bg-black/80 backdrop-blur-md px-6 py-3 rounded-xl border border-white/20">
+                      <span className="text-xl font-black tracking-[0.2em] text-white">COMING SOON</span>
+                    </div>
+                  </div>
+                )}
+                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg text-[10px] font-bold text-white flex items-center gap-1.5 border border-white/10">
+                  <MapPin size={12} /> {store?.name || '강남점'}
+                </div>
+                {!isComingSoon && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                    <span className="text-white font-bold flex items-center gap-2">
+                      자세히 보기 <ChevronRight size={18} />
+                    </span>
+                  </div>
+                )}
+              </Link>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <h3 className="text-2xl font-bold group-hover:text-white transition-colors">{theme.title}</h3>
+                  <span className="text-white font-mono text-sm">{theme.price.toLocaleString()}원 / 1인</span>
+                </div>
+              
+              <div className="flex flex-wrap gap-4 text-[10px] font-bold tracking-widest uppercase text-white/40">
+                <div className="flex items-center gap-1.5">
+                  <span>DIFFICULTY</span>
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className={`w-2 h-2 rounded-full ${i < theme.difficulty ? 'bg-white' : 'bg-white/10'}`} />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span>FEAR</span>
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className={`w-2 h-2 rounded-full ${i < theme.fearLevel ? 'bg-[#dc2626]' : 'bg-white/10'}`} />
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="p-8 flex-grow flex flex-col">
-              <h3 className="text-2xl font-bold mb-4">{theme.title}</h3>
-              <p className="text-[#b3b3b3] text-sm mb-6 line-clamp-3 leading-relaxed">
+
+              <p className="text-[#b3b3b3] text-sm line-clamp-2 leading-relaxed h-10">
                 {theme.synopsis}
               </p>
-              <div className="mt-auto flex items-center justify-between">
-                <div className="text-sm">
-                  <span className="text-white block font-medium">참여 인원</span>
-                  <span className="text-[#b3b3b3]">{theme.minPlayers}인 ~ {theme.maxPlayers}인</span>
+
+              <div className="pt-4 flex items-center justify-between border-t border-white/5">
+                <div className="flex items-center gap-4 text-xs text-white/60">
+                  <span className="flex items-center gap-1.5">
+                    <Users size={14} /> {theme.minPlayers}-{theme.maxPlayers}인
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock size={14} /> {theme.duration}분
+                  </span>
                 </div>
-                <Link 
-                  to={`/theme/${theme.id}`}
-                  className="px-5 py-2.5 bg-white text-black rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-neutral-200 transition-colors"
-                >
-                  상세보기 <ChevronRight size={16} />
-                </Link>
+                {!isComingSoon && (
+                  <Link 
+                    to={`/theme/${theme.id}`}
+                    className="text-xs font-bold text-white hover:underline"
+                  >
+                    RESERVE NOW
+                  </Link>
+                )}
               </div>
             </div>
           </div>
-        ))}
+        );
+      })}
       </div>
     </div>
   );
