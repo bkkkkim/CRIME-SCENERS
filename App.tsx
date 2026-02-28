@@ -35,7 +35,8 @@ const Header = () => {
     { name: '홈', path: '/' },
     { name: '이용안내', path: '/info' },
     { name: '테마예약', path: '/reservation' },
-    { name: '문의하기', path: '/contact' }
+    { name: '문의하기', path: '/contact' },
+    { name: '관리자', path: '/admin' }
   ];
 
   return (
@@ -82,9 +83,9 @@ const Footer = () => (
         </div>
       </div>
       <div className="flex items-center space-x-6">
-        {/* 관리자 접근은 숨겨진 링크 형태로 하거나 별도 북마크 사용을 권장하지만, 버튼은 유지 (opacity 낮춤) */}
-        <Link to="/admin" className="text-white/5 hover:text-white transition-colors">
+        <Link to="/admin" className="text-white/40 hover:text-white transition-colors flex items-center gap-1 text-sm">
           <Settings size={18} />
+          <span>관리자</span>
         </Link>
         <a href="#" className="hover:text-white"><Instagram size={24} /></a>
         <a href="#" className="hover:text-white"><Youtube size={24} /></a>
