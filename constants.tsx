@@ -4,24 +4,26 @@ import { Theme, AdminSettings, Notice } from './types';
 export const THEMES: Theme[] = [
   {
     id: 'theme-1',
-    title: '지하실의 비명',
+    title: '박수무당 살인사건',
     posterUrl: 'https://images.unsplash.com/photo-1517400508447-f8dd518b86db?auto=format&fit=crop&q=80',
-    synopsis: '오래된 폐저택의 지하실에서 발견된 차가운 사체. 범인은 이 집안 식구 중 한 명이다. 당신은 결백을 증명할 수 있는가?',
+    synopsis: '신비로운 무당의 집에서 벌어진 참혹한 살인사건. 당신은 이 미스터리를 풀고 범인을 잡을 수 있을 것인가?',
     minPlayers: 4,
     maxPlayers: 5,
     duration: 100,
     difficulty: 4,
+    fearLevel: 3,
     price: 28000
   },
   {
     id: 'theme-2',
-    title: '라스트 콘서트',
+    title: '미대생 살인사건',
     posterUrl: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80',
-    synopsis: '인기 아이돌의 화려한 무대 뒤편, 대기실에서 싸늘하게 죽은 채 발견된 매니저. 공연 1시간 전, 진실을 밝혀야 한다.',
+    synopsis: '화려한 예술의 이면에 숨겨진 어두운 진실. 미대 작업실에서 발견된 사체와 얽히고설킨 인물들.',
     minPlayers: 5,
     maxPlayers: 6,
     duration: 120,
     difficulty: 5,
+    fearLevel: 2,
     price: 32000
   }
 ];
@@ -49,6 +51,14 @@ export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   managerEmail: 'admin@crimesceners.com',
   weekdaySlots: ['19:30'],
   weekendSlots: ['11:00', '13:30', '16:00', '18:30', '21:00'],
+  bankInfo: {
+    bankName: '신한',
+    accountNumber: '110520466113',
+    holderName: '김보경'
+  },
+  logoUrl: 'https://i.imgur.com/G5ZkX1n.png',
+  faviconUrl: '',
+  thumbnailUrl: '',
   smsTemplates: {
     onBooking: {
       content: '[CRIME SCENERS] {name}님, {theme} 테마 예약이 완료되었습니다. {date} {time}에 뵙겠습니다.',

@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { CheckCircle2, Calendar, Clock, Users, ArrowRight, MessageSquare } from 'lucide-react';
+import { CheckCircle2, Calendar, Clock, Users, ArrowRight, MessageSquare, CreditCard, FileText } from 'lucide-react';
 
 const BookingSuccess = () => {
   const { state } = useLocation();
@@ -17,7 +17,11 @@ const BookingSuccess = () => {
     const savedBookings = JSON.parse(localStorage.getItem('cs_bookings') || '[]');
     const newBooking = {
       ...state,
+      themeId: state.theme.id,
+      themeTitle: state.theme.title,
+      themePoster: state.theme.posterUrl,
       id: `booking-${Date.now()}`,
+      status: 'confirmed',
       createdAt: new Date().toISOString()
     };
     localStorage.setItem('cs_bookings', JSON.stringify([...savedBookings, newBooking]));
@@ -25,7 +29,7 @@ const BookingSuccess = () => {
 
   if (!state) return null;
 
-  const { theme, date, time, name, participants } = state;
+  const { theme, date, time, name, phone, participants, paymentMethod, notes, isCloseRequested } = state;
 
   return (
     <div className="pt-32 pb-24 px-6 max-w-2xl mx-auto">
@@ -36,31 +40,52 @@ const BookingSuccess = () => {
         <h1 className="text-4xl font-bold mb-4">예약이 완료되었습니다!</h1>
         <p className="text-[#b3b3b3] text-lg leading-relaxed">
           {name}님의 소중한 예약이 정상적으로 접수되었습니다.<br />
-          입력하신 번호로 예약 확정 메시지가 발송되었습니다.
+          입력하신 번호({phone})로 예약 확정 메시지가 발송되었습니다.
         </p>
       </div>
 
-      <div className="bg-[#1a1a1a] rounded-3xl border border-white/5 overflow-hidden mb-10">
-        <div className="p-8 border-b border-white/5 bg-white/5">
-          <h2 className="text-xl font-bold">예약 내역</h2>
+      <div className="bg-[#1a1a1a] rounded-3xl border border-white/5 overflow-hidden mb-10 shadow-2xl shadow-black/50">
+        <div className="p-8 border-b border-white/5 bg-white/5 flex justify-between items-center">
+          <h2 className="text-xl font-bold">예약 상세 내역</h2>
+          <span className="text-xs px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full font-bold border border-blue-500/20">예약 완료</span>
         </div>
         <div className="p-8 space-y-6">
-          <div className="flex justify-between items-center">
-            <span className="text-[#b3b3b3]">테마명</span>
-            <span className="font-bold text-white">{theme.title}</span>
+          <div className="flex justify-between items-start">
+            <span className="text-[#b3b3b3]">선택 테마</span>
+            <span className="font-bold text-white text-right">{theme.title}</span>
           </div>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 text-[#b3b3b3]">
-              <Calendar size={18} /> 일시
+              <Calendar size={18} /> 예약 일자
             </div>
-            <span className="font-bold text-white">{date} {time}</span>
+            <span className="font-bold text-white">{date}</span>
           </div>
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2 text-[#b3b3b3]">
-              <Users size={18} /> 인원
+              <Clock size={18} /> 예약 시간
             </div>
-            <span className="font-bold text-white">{participants}명</span>
+            <span className="font-bold text-white">{time}</span>
           </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-[#b3b3b3]">
+              <Users size={18} /> 참여 인원
+            </div>
+            <span className="font-bold text-white">{participants}명 {isCloseRequested && <span className="text-red-500 text-xs ml-1">(마감 신청됨)</span>}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-[#b3b3b3]">
+              <CreditCard size={18} /> 결제 방식
+            </div>
+            <span className="font-bold text-white">{paymentMethod === 'bank-transfer' ? '계좌이체 (선입금)' : '현장 결제'}</span>
+          </div>
+          {notes && (
+            <div className="pt-4 border-t border-white/5">
+              <div className="flex items-center gap-2 text-[#b3b3b3] mb-2">
+                <FileText size={18} /> 요청 사항
+              </div>
+              <p className="text-sm text-white/60 bg-black/40 p-4 rounded-xl italic">"{notes}"</p>
+            </div>
+          )}
         </div>
         <div className="p-6 bg-black/40 text-center">
             <p className="text-xs text-[#b3b3b3] flex items-center justify-center gap-2">

@@ -35,7 +35,6 @@ const Header = () => {
     { name: '홈', path: '/' },
     { name: '이용안내', path: '/info' },
     { name: '테마예약', path: '/reservation' },
-    { name: '공지사항', path: '/notice' },
     { name: '문의하기', path: '/contact' }
   ];
 
@@ -106,7 +105,6 @@ const App = () => {
             <Route path="/theme/:id" element={<ThemeDetail />} />
             <Route path="/booking/:themeId/:date/:time" element={<BookingForm />} />
             <Route path="/success" element={<BookingSuccess />} />
-            <Route path="/notice" element={<NoticeBoard />} />
             <Route path="/contact" element={<ContactForm />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/info" element={<div className="pt-32 text-center">준비 중입니다.</div>} />

@@ -2,14 +2,15 @@
 export interface Theme {
   id: string;
   title: string;
-  posterUrl: string;
+  posterUrl: string; // Can be a URL or Base64 string
   synopsis: string;
   minPlayers: number;
   maxPlayers: number;
   duration: number;
   difficulty: number;
+  fearLevel: number; // Added fear level
   price: number;
-  customSlots?: string[]; // 테마별 개별 슬롯 설정
+  customSlots?: string[];
 }
 
 export interface Notice {
@@ -25,6 +26,14 @@ export interface AdminSettings {
   managerEmail: string;
   weekdaySlots: string[];
   weekendSlots: string[];
+  bankInfo: {
+    bankName: string;
+    accountNumber: string;
+    holderName: string;
+  };
+  logoUrl: string;
+  faviconUrl: string;
+  thumbnailUrl: string;
   smsTemplates: {
     onBooking: { content: string; enabled: boolean };
     dayBefore: { content: string; time: string; enabled: boolean };
@@ -47,7 +56,8 @@ export interface BookingData {
   participantCount: number;
   isCloseRequested: boolean;
   notes: string;
-  status: 'confirmed' | 'cancelled';
+  paymentMethod: 'on-site' | 'bank-transfer';
+  status: 'confirmed' | 'cancelled' | 'paid';
   createdAt: string;
 }
 
